@@ -1,0 +1,427 @@
+{
+  "info": {
+    "_postman_id": "5d0d7e5c-ec42-48c2-a384-9aee5f7e8c01",
+    "name": "ShopKart Customer Authentication",
+    "description": "End-to-end demonstration of the ShopKart customer authentication API. Run requests in order with Postman's cookie jar enabled.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.collectionVariables.set('baseUrl', pm.collectionVariables.get('baseUrl') || 'http://localhost:5000');",
+          "pm.collectionVariables.set('customerPassword', pm.collectionVariables.get('customerPassword') || 'john123');",
+          "pm.collectionVariables.set('newPassword', pm.collectionVariables.get('newPassword') || 'newjohn123');"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "customerEmail",
+      "value": ""
+    },
+    {
+      "key": "customerPassword",
+      "value": "john123"
+    },
+    {
+      "key": "newPassword",
+      "value": "newjohn123"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Health check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Service is running', function () { pm.expect(pm.response.json().success).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Reject profile without login (401)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/customers/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 401 Unauthorized', function () { pm.response.to.have.status(401); });",
+              "pm.test('Response explains the rejection', function () { pm.expect(pm.response.json().message).to.eql('Unauthorized'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Register customer (201)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('customerEmail', 'john.' + Date.now() + '@example.com');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 201 Created', function () { pm.response.to.have.status(201); });",
+              "pm.test('Registration succeeds', function () { pm.expect(pm.response.json().success).to.eql(true); });",
+              "pm.test('Password is not returned', function () { pm.expect(pm.response.json().customer).to.not.have.property('password'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\",\n  \"phone\": \"9876543210\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/customers/register"
+      }
+    },
+    {
+      "name": "4 - Reject duplicate email (409)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Another Customer\",\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"another123\",\n  \"phone\": \"1234567890\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/customers/register"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 409 Conflict', function () { pm.response.to.have.status(409); });",
+              "pm.test('Duplicate email is rejected', function () { pm.expect(pm.response.json().message).to.eql('Email already exists'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Reject missing field (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Missing Fields\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/customers/register"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 400 Bad Request', function () { pm.response.to.have.status(400); });",
+              "pm.test('Missing fields are rejected', function () { pm.expect(pm.response.json().message).to.eql('All fields are required'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 - Reject short password (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Short Password\",\n  \"email\": \"short.{{customerEmail}}\",\n  \"password\": \"12345\",\n  \"phone\": \"1234567890\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/customers/register"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 400 Bad Request', function () { pm.response.to.have.status(400); });",
+              "pm.test('Short password is rejected', function () { pm.expect(pm.response.json().message).to.include('at least 6'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7 - Reject wrong password (401)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"wrong-password\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/customers/login"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 401 Unauthorized', function () { pm.response.to.have.status(401); });",
+              "pm.test('Login error is generic', function () { pm.expect(pm.response.json().message).to.eql('Invalid email or password'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8 - Login successfully (200 + HttpOnly cookie)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/customers/login"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200 OK', function () { pm.response.to.have.status(200); });",
+              "pm.test('Login succeeds', function () { pm.expect(pm.response.json().message).to.eql('Login successful'); });",
+              "pm.test('Password is not returned', function () { pm.expect(pm.response.json().customer).to.not.have.property('password'); });",
+              "pm.test('HttpOnly cookie is returned', function () { pm.expect((pm.response.headers.get('Set-Cookie') || '').toLowerCase()).to.include('httponly'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9 - Get profile after login (200)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/customers/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200 OK', function () { pm.response.to.have.status(200); });",
+              "pm.test('Profile belongs to the logged-in customer', function () { pm.expect(pm.response.json().email).to.eql(pm.collectionVariables.get('customerEmail')); });",
+              "pm.test('Password is not returned', function () { pm.expect(pm.response.json()).to.not.have.property('password'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Change password (200)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"oldPassword\": \"{{customerPassword}}\",\n  \"newPassword\": \"{{newPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/customers/change-password"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200 OK', function () { pm.response.to.have.status(200); });",
+              "pm.test('Password change succeeds', function () { pm.expect(pm.response.json().message).to.eql('Password changed successfully'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 - Logout (200 + clear cookie)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": "{{baseUrl}}/customers/logout"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200 OK', function () { pm.response.to.have.status(200); });",
+              "pm.test('Logout succeeds', function () { pm.expect(pm.response.json().message).to.eql('Logged out successfully'); });",
+              "pm.test('Cookie is cleared', function () { pm.expect(pm.response.headers.get('Set-Cookie') || '').to.include('shopkart_auth=;'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 - Reject profile after logout (401)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/customers/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 401 Unauthorized', function () { pm.response.to.have.status(401); });",
+              "pm.test('Logged-out customer cannot access profile', function () { pm.expect(pm.response.json().message).to.eql('Unauthorized'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 - Login with changed password (200)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{newPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/customers/login"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200 OK', function () { pm.response.to.have.status(200); });",
+              "pm.test('Changed password works', function () { pm.expect(pm.response.json().message).to.eql('Login successful'); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
