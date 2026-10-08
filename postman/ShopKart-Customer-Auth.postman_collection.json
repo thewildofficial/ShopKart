@@ -42,7 +42,7 @@
       "request": {
         "method": "GET",
         "header": [],
-        "url": "{{baseUrl}}/"
+        "url": "{{baseUrl}}/api/health"
       },
       "event": [
         {
@@ -52,6 +52,24 @@
             "exec": [
               "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
               "pm.test('Service is running', function () { pm.expect(pm.response.json().success).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clear session before authentication checks",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/customers/logout"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Session cleared\", () => pm.response.to.have.status(200));"
             ]
           }
         }

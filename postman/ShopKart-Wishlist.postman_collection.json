@@ -1,13 +1,13 @@
 {
   "info": {
     "name": "ShopKart Wishlist \u2014 Lab 04",
-    "description": "Login with the auth collection first. Set productId to an existing product. Run these requests in order.",
+    "description": "Run all requests in order with the cookie jar enabled. The collection creates a fresh customer, logs in and creates a product automatically. Set baseUrl to your running server (default localhost:5001).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:5000"
+      "value": "http://localhost:5001"
     },
     {
       "key": "productId",
@@ -15,6 +15,100 @@
     }
   ],
   "item": [
+    {
+      "name": "01 Register fresh test customer",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/customers/register",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"fullName\": \"Wishlist Test\", \"email\": \"{{wishlistEmail}}\", \"password\": \"wishlist-test-123\", \"phone\": \"9876543210\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set(\"wishlistEmail\", \"wishlist.\" + Date.now() + \"@example.com\");"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Registered\", () => pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Login test customer",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/customers/login",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\": \"{{wishlistEmail}}\", \"password\": \"wishlist-test-123\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Logged in\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Create test product",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/products",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Wishlist runner product\", \"description\": \"Created by the Lab 04 runner\", \"price\": 100, \"category\": \"Books\", \"image\": \"/images/book.svg\", \"stock\": 1}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Product created\", () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set(\"productId\", pm.response.json().product._id);"
+            ]
+          }
+        }
+      ]
+    },
     {
       "name": "Add product",
       "request": {
