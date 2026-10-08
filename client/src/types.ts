@@ -26,3 +26,6 @@ export type LoadState<T> =
   | { status: 'loading' }
   | { status: 'success'; data: T }
   | { status: 'error'; message: string };
+
+export interface CartItem { product: ProductSummary; quantity: number; }
+export interface CartResponse { success: boolean; cart: CartItem[]; message?: string; }

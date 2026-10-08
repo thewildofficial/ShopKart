@@ -55,3 +55,7 @@ The demo visibly proves:
 ## Lab-04: Wishlist
 
 See [LAB-04.md](LAB-04.md) for protected wishlist APIs, persistent Product references, frontend behavior and the Postman collection.
+
+## Lab-05: Shopping Cart
+
+See [LAB-05.md](LAB-05.md) for cart APIs, shared React Context state, stock validation, quantity controls, totals and a runnable Postman collection.

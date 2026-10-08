@@ -1,4 +1,4 @@
-import type { Customer, LoginValues, RegisterValues, Product, ProductSummary, ProductFilters } from '../types';
+import type { CartResponse, Customer, LoginValues, RegisterValues, Product, ProductSummary, ProductFilters } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number) { super(message); }
@@ -10,7 +10,7 @@ export function isAborted(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError';
 }
 
-interface RequestOptions { method?: 'GET' | 'POST' | 'DELETE'; body?: LoginValues | RegisterValues; signal?: AbortSignal; }
+interface RequestOptions { method?: 'GET' | 'POST' | 'DELETE' | 'PATCH'; body?: LoginValues | RegisterValues | { quantity: number }; signal?: AbortSignal; }
 async function request<T>(path: string, { method = 'GET', body, signal }: RequestOptions = {}): Promise<T> {
   let response: Response;
   try {
@@ -30,6 +30,10 @@ async function request<T>(path: string, { method = 'GET', body, signal }: Reques
 }
 
 export const api = {
+  cart: (signal?: AbortSignal) => request<CartResponse>('/api/cart', { signal }),
+  addToCart: (id: string, signal?: AbortSignal) => request<CartResponse>(`/api/cart/${encodeURIComponent(id)}`, { method: 'POST', signal }),
+  updateCartQuantity: (id: string, quantity: number, signal?: AbortSignal) => request<CartResponse>(`/api/cart/${encodeURIComponent(id)}`, { method: 'PATCH', body: { quantity }, signal }),
+  removeFromCart: (id: string, signal?: AbortSignal) => request<CartResponse>(`/api/cart/${encodeURIComponent(id)}`, { method: 'DELETE', signal }),
   wishlist: (signal?: AbortSignal) => request<{ success: boolean; count: number; wishlist: ProductSummary[] }>('/api/wishlist', { signal }),
   addToWishlist: (id: string) => request<{ success: boolean; message: string }>(`/api/wishlist/${encodeURIComponent(id)}`, { method: 'POST' }),
   removeFromWishlist: (id: string) => request<{ success: boolean; message: string }>(`/api/wishlist/${encodeURIComponent(id)}`, { method: 'DELETE' }),

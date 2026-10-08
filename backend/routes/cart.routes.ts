@@ -1,0 +1,10 @@
+import { Router } from "express";
+import protect from "../middlewares/auth.middleware";
+import { getCart, addToCart, updateQuantity, removeFromCart, validateCartId } from "../controllers/cart.controller";
+const router = Router();
+router.use(protect);
+router.get("/", getCart);
+router.post("/:productId", validateCartId, addToCart);
+router.patch("/:productId", validateCartId, updateQuantity);
+router.delete("/:productId", validateCartId, removeFromCart);
+export default router;

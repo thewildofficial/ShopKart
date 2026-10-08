@@ -1,0 +1,373 @@
+{
+  "info": {
+    "name": "ShopKart Shopping Cart \u2014 Lab 05",
+    "description": "Run all requests in order with cookie jar enabled. Creates a fresh customer and stock-3 product automatically. baseUrl defaults to localhost:5001.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001"
+    },
+    {
+      "key": "productId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Register fresh test customer",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/customers/register",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"fullName\": \"Wishlist Test\", \"email\": \"{{wishlistEmail}}\", \"password\": \"wishlist-test-123\", \"phone\": \"9876543210\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set(\"wishlistEmail\", \"wishlist.\" + Date.now() + \"@example.com\");"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Registered\", () => pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Login test customer",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/customers/login",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\": \"{{wishlistEmail}}\", \"password\": \"wishlist-test-123\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Logged in\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Create test product",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/products",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Cart runner product\", \"description\": \"Created by Lab 05 runner\", \"price\": 100, \"category\": \"Books\", \"image\": \"/images/book.svg\", \"stock\": 3}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Product created\", () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set(\"productId\", pm.response.json().product._id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Add new item",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/cart/{{productId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Quantity 1\", () => pm.expect(pm.response.json().cart[0].quantity).to.eql(1));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Add same item again",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/cart/{{productId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"One row, quantity 2\", () => { const cart = pm.response.json().cart; pm.expect(cart.length).to.eql(1); pm.expect(cart[0].quantity).to.eql(2); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Get populated cart",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/cart"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Product populated\", () => pm.expect(pm.response.json().cart[0].product.price).to.eql(100));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Update quantity",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/cart/{{productId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"quantity\": 3}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Reject above stock",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/cart/{{productId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"quantity\": 4}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Reject add at stock",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/cart/{{productId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Reject fractional quantity",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/cart/{{productId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"quantity\": 1.5}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Reject zero quantity",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/cart/{{productId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"quantity\": 0}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Remove item",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/cart/{{productId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Cart empty\", () => pm.expect(pm.response.json().cart).to.eql([]));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Reject absent removal",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/cart/{{productId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 Logout",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/customers/logout"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 Reject unauthenticated cart",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/cart"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 401\", () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

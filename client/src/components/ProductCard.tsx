@@ -3,6 +3,7 @@ import { api, ApiError, errorMessage } from '../services/api';
 import { Link } from 'react-router-dom';
 import type { ProductSummary } from '../types';
 import { formatPrice } from '../utils/format';
+import AddToCartButton from './AddToCartButton';
 import ProductImage from './ProductImage';
 
 interface Props {
@@ -33,6 +34,7 @@ export default function ProductCard({ product, saved, wishlistStatus, onSaved }:
       <div className="product-meta"><strong>{formatPrice(product.price)}</strong><span className={product.stock > 0 ? 'stock in-stock' : 'stock out-of-stock'}>{product.stock > 0 ? `${product.stock} units left` : 'Out of stock'}</span></div>
       <Link className="button button-secondary details-link" to={`/products/${product._id}`}>View Details<span aria-hidden="true"> ↗</span></Link>
       <button className="button button-secondary wishlist-action" onClick={save} disabled={wishlistStatus !== 'success' || saving || saved}>{wishlistStatus === 'error' ? 'Wishlist unavailable' : wishlistStatus === 'loading' ? 'Checking wishlist…' : saving ? 'Saving…' : saved ? '♥ Added to Wishlist' : '♡ Add to Wishlist'}</button>
+      <AddToCartButton product={product} />
       {error && <p className="notice error" role="alert">{error}</p>}
     </div>
   </article>;

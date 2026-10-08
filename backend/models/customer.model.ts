@@ -17,6 +17,7 @@ export interface Customer {
   phone: string;
   createdAt: Date;
   wishlist: mongoose.Types.ObjectId[];
+  cart: { product: mongoose.Types.ObjectId; quantity: number }[];
 }
 
 export interface CustomerMethods {
@@ -50,6 +51,13 @@ const customerSchema = new mongoose.Schema<Customer, CustomerModel, CustomerMeth
       type: String,
       required: true,
       trim: true,
+    },
+    cart: {
+      type: [new mongoose.Schema({
+        product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+        quantity: { type: Number, default: 1, min: 1, required: true, validate: { validator: Number.isSafeInteger, message: "Quantity must be a whole number" } },
+      }, { _id: false })],
+      default: [],
     },
     wishlist: {
       type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],

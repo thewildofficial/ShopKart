@@ -379,3 +379,63 @@ test("wishlist persists references, prevents concurrent duplicates, populates cu
   assert.equal((await request(`/wishlist/${keyboardId}`, { method: "DELETE" })).response.status, 404);
   authCookie = null;
 });
+
+test("cart endpoints authenticate and validate IDs, quantity, and stock", async () => {
+  authCookie = null;
+  for (const [method, endpoint] of [["GET", "/cart"], ["POST", "/cart/not-an-id"], ["PATCH", "/cart/not-an-id"], ["DELETE", "/cart/not-an-id"]]) {
+    assert.equal((await request(endpoint, { method })).response.status, 401);
+  }
+  const login = await request("/customers/login", { method: "POST", body: JSON.stringify({ email: "john@gmail.com", password: "newjohn123" }) });
+  authCookie = cookieValue(getSetCookie(login.response));
+  const customer = await Customer.findOne({ email: "john@gmail.com" });
+  assert.deepEqual(customer?.cart, []);
+  // Simulate a document created before Lab-05.
+  await Customer.updateOne({ _id: customer!._id }, { $unset: { cart: 1 } });
+  assert.deepEqual((await request("/cart")).body.cart, []);
+  for (const method of ["POST", "PATCH", "DELETE"]) {
+    assert.equal((await request("/cart/not-an-id", { method, body: JSON.stringify({ quantity: 1 }) })).response.status, 400);
+  }
+  assert.equal((await request("/cart/aaaaaaaaaaaaaaaaaaaaaaaa", { method: "POST" })).response.status, 404);
+  const product = await Product.create({ ...keyboard, stock: 3 });
+  const id = product._id.toString();
+  assert.equal((await request(`/cart/${id}`, { method: "PATCH", body: JSON.stringify({ quantity: 1 }) })).response.status, 404);
+  const adds = await Promise.all(Array.from({ length: 5 }, () => request(`/cart/${id}`, { method: "POST", body: JSON.stringify({ userId: "aaaaaaaaaaaaaaaaaaaaaaaa", quantity: 100 }) })));
+  assert.deepEqual(adds.map(({ response }) => response.status).sort(), [200, 200, 200, 400, 400]);
+  let cart = (await request("/api/cart")).body.cart;
+  assert.equal(cart.length, 1);
+  assert.equal(cart[0].quantity, 3);
+  assert.equal(cart[0].product._id, id);
+  assert.equal(cart[0].product.name, keyboard.name);
+  const stored = await Customer.findById(customer!._id);
+  assert.ok(stored?.cart[0].product instanceof mongoose.Types.ObjectId);
+  for (const quantity of [0, -1, 1.5, "2", null, true, 4]) {
+    assert.equal((await request(`/cart/${id}`, { method: "PATCH", body: JSON.stringify({ quantity }) })).response.status, 400);
+  }
+  assert.equal((await request(`/cart/${id}`, { method: "PATCH", body: "{}" })).response.status, 400);
+  assert.equal((await request(`/cart/${id}`, { method: "PATCH", body: JSON.stringify({ quantity: 2 }) })).body.cart[0].quantity, 2);
+  await Product.updateOne({ _id: id }, { $set: { price: 999, stock: 1 } });
+  cart = (await request("/cart")).body.cart;
+  assert.equal(cart[0].product.price, 999);
+  assert.equal(cart[0].product.stock, 1);
+  assert.equal((await request(`/cart/${id}`, { method: "POST" })).response.status, 400);
+  assert.equal((await request(`/cart/${id}`, { method: "PATCH", body: JSON.stringify({ quantity: 1 }) })).response.status, 200);
+  const zeroStock = await Product.create({ ...keyboard, stock: 0 });
+  assert.equal((await request(`/cart/${zeroStock._id}`, { method: "POST" })).response.status, 400);
+  const ownerCookie = authCookie;
+  const otherLogin = await request("/customers/login", { method: "POST", body: JSON.stringify({ email: "second@example.com", password: "second123" }) });
+  authCookie = cookieValue(getSetCookie(otherLogin.response));
+  assert.deepEqual((await request(`/cart?userId=${customer!._id}`)).body.cart, []);
+  assert.equal((await request(`/cart/${id}`, { method: "DELETE" })).response.status, 404);
+  assert.equal((await request(`/cart/${id}`, { method: "PATCH", body: JSON.stringify({ quantity: 1 }) })).response.status, 404);
+  authCookie = ownerCookie;
+  await request("/customers/logout", { method: "POST" });
+  authCookie = null;
+  const relogin = await request("/customers/login", { method: "POST", body: JSON.stringify({ email: "john@gmail.com", password: "newjohn123" }) });
+  authCookie = cookieValue(getSetCookie(relogin.response));
+  assert.equal((await request("/cart")).body.cart[0].quantity, 1);
+  await Product.deleteOne({ _id: id });
+  assert.deepEqual((await request("/cart")).body.cart, []);
+  assert.equal((await request(`/cart/${id}`, { method: "DELETE" })).response.status, 200);
+  assert.equal((await request(`/cart/${id}`, { method: "DELETE" })).response.status, 404);
+  authCookie = null;
+});
