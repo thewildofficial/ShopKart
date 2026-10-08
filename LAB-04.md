@@ -37,3 +37,9 @@ The wishlist page has loading, empty and error states, Browse Products navigatio
 Import `postman/ShopKart-Wishlist.postman_collection.json` using Postman’s Import action (opening JSON in the file editor does not create runnable requests). Set `baseUrl` to the running server; the collection defaults to http://localhost:5001 and automatically registers a fresh test customer, logs in and creates a product before exercising the wishlist. Keep the cookie jar enabled and run requests in order.
 
 Chrome verification confirmed saving a catalog product and displaying its populated card on `/wishlist`. If routes return 404 after a build, restart the Node server: compiled files do not replace modules already loaded by a running process. The health endpoint `/api/health` always returns JSON, even when Express serves the built React app at `/`.
+
+## Catalog saved-state hydration
+
+The catalog fetches saved product IDs once per page mount and passes saved status to cards. Successful saves update that page-local set, so filtering and card remounts retain the correct status. Returning from Wishlist or refreshing reloads IDs from MongoDB. Actions stay disabled while saved status is unknown; failures show a wishlist-specific retry without hiding the catalog. No Context, Redux or data cache is required. The API still reconciles concurrent changes from other tabs using 409 responses.
+
+The product existence check and customer update are separate operations, so cross-collection referential integrity is not transactional. GET omits deleted products and DELETE can remove stale references. Automated tests cover backend behavior; frontend verification uses Chrome, without a dedicated automated frontend suite.

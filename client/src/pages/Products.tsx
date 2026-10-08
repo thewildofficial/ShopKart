@@ -16,6 +16,26 @@ export default function Products() {
   const [state, setState] = useState<LoadState<ProductSummary[]>>({ status: 'loading' });
   const [categories, setCategories] = useState(defaultCategories);
   const [retry, setRetry] = useState(0);
+  const [wishlist, setWishlist] = useState<LoadState<Set<string>>>({ status: 'loading' });
+  const [wishlistRetry, setWishlistRetry] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setWishlist({ status: 'loading' });
+    // One page-level fetch keeps saved status consistent across card remounts
+    // and filters without adding global state or issuing a request per card.
+    api.wishlist(controller.signal)
+      .then(({ wishlist: products }) => setWishlist({ status: 'success', data: new Set(products.map((product) => product._id)) }))
+      .catch((error: unknown) => {
+        if (!isAborted(error)) setWishlist({ status: 'error', message: errorMessage(error) });
+      });
+    return () => controller.abort();
+  }, [wishlistRetry]);
+
+  function markSaved(id: string) {
+    setWishlist((current) => current.status === 'success'
+      ? { status: 'success', data: new Set([...current.data, id]) } : current);
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -53,10 +73,11 @@ export default function Products() {
   return <main className="catalog-layout">
     <section className="catalog-hero"><span className="eyebrow">CURATED FOR YOUR EVERYDAY</span><h1>Find your next favourite.</h1><p>Good things for your desk, your home, and everything in between.</p><span className="hero-spark" aria-hidden="true">✦</span></section>
     <SearchBar filters={filters} categories={categories.includes(category) || !category ? categories : [...categories, category]} onChange={changeFilters} />
+    {wishlist.status === 'error' && <div className="notice error" role="alert"><p>Unable to check your saved products. {wishlist.message}</p><button className="button button-secondary" onClick={() => setWishlistRetry((value) => value + 1)}>Retry wishlist</button></div>}
     {state.status === 'loading' && <div className="catalog-state" role="status">Loading products...</div>}
     {state.status === 'error' && <div className="catalog-state"><h2>Something went wrong while loading products.</h2><p role="alert">{state.message}</p><button className="button button-primary" onClick={() => setRetry((value) => value + 1)}>Try again</button></div>}
     {state.status === 'success' && <><p className="results-count" role="status">{state.data.length} {state.data.length === 1 ? 'product' : 'products'} found</p>
-      {state.data.length ? <div className="product-grid">{state.data.map((product) => <ProductCard key={product._id} product={product} />)}</div>
+      {state.data.length ? <div className="product-grid">{state.data.map((product) => <ProductCard key={product._id} product={product} saved={wishlist.status === 'success' && wishlist.data.has(product._id)} wishlistStatus={wishlist.status} onSaved={markSaved} />)}</div>
         : <div className="catalog-state"><h2>No products found.</h2><p>Try another search or choose a different category.</p>{(search || category || sort) && <button className="button button-secondary" onClick={() => changeFilters({ search: '', category: '', sort: '' })}>Clear filters</button>}</div>}
     </>}
   </main>;
