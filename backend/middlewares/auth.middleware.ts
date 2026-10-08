@@ -10,7 +10,8 @@ function unauthorized(res: Parameters<RequestHandler>[1]) {
 }
 
 const protect: RequestHandler = async (req, res, next) => {
-  const token = req.cookies?.[COOKIE_NAME];
+  const bearer = req.headers.authorization?.match(/^Bearer (\S+)$/i)?.[1];
+  const token = bearer || req.cookies?.[COOKIE_NAME];
 
   if (!token) {
     return unauthorized(res);

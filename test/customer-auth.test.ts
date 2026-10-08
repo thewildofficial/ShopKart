@@ -337,3 +337,45 @@ test("fetches complete product details and distinguishes invalid IDs from missin
   assert.equal((await request("/products/not-an-id")).response.status, 400);
   assert.equal((await request("/products/aaaaaaaaaaaaaaaaaaaaaaaa")).response.status, 404);
 });
+
+test("wishlist requires authentication on every endpoint", async () => {
+  authCookie = null;
+  for (const [method, endpoint] of [["GET", "/wishlist"], ["POST", `/wishlist/${keyboardId}`], ["DELETE", `/wishlist/${keyboardId}`]]) {
+    assert.equal((await request(endpoint, { method })).response.status, 401);
+  }
+});
+
+test("wishlist persists references, prevents concurrent duplicates, populates current data and isolates users", async () => {
+  const login = await request("/customers/login", { method: "POST", body: JSON.stringify({ email: "john@gmail.com", password: "newjohn123" }) });
+  authCookie = cookieValue(getSetCookie(login.response));
+  assert.equal((await request("/wishlist")).body.count, 0);
+  for (const method of ["POST", "DELETE"]) {
+    assert.equal((await request("/wishlist/not-an-id", { method })).response.status, 400);
+  }
+  assert.equal((await request("/wishlist/aaaaaaaaaaaaaaaaaaaaaaaa", { method: "POST" })).response.status, 404);
+  assert.equal((await request(`/wishlist/${keyboardId}`, { method: "DELETE" })).response.status, 404);
+  const adds = await Promise.all(Array.from({ length: 5 }, () => request(`/wishlist/${keyboardId}`, { method: "POST", body: JSON.stringify({ userId: "aaaaaaaaaaaaaaaaaaaaaaaa" }) })));
+  assert.deepEqual(adds.map(({ response }) => response.status).sort(), [201, 409, 409, 409, 409]);
+  const customer = await Customer.findOne({ email: "john@gmail.com" });
+  assert.equal(customer?.wishlist.length, 1);
+  assert.ok(customer?.wishlist[0] instanceof mongoose.Types.ObjectId);
+  await Product.updateOne({ _id: keyboardId }, { $set: { price: 3499 } });
+  const wishlist = await request("/api/wishlist");
+  assert.equal(wishlist.body.count, 1);
+  assert.equal(wishlist.body.wishlist[0].price, 3499);
+  assert.equal(wishlist.body.wishlist[0].name, keyboard.name);
+  assert.equal("password" in wishlist.body, false);
+  const ownerCookie = authCookie;
+  await request("/customers/register", { method: "POST", body: JSON.stringify({ fullName: "Second Customer", email: "second@example.com", password: "second123", phone: "9876543210" }) });
+  const secondLogin = await request("/customers/login", { method: "POST", body: JSON.stringify({ email: "second@example.com", password: "second123" }) });
+  authCookie = cookieValue(getSetCookie(secondLogin.response));
+  assert.equal((await request(`/wishlist?userId=${customer?._id}`)).body.count, 0);
+  assert.equal((await request(`/wishlist/${keyboardId}`, { method: "DELETE" })).response.status, 404);
+  authCookie = ownerCookie;
+  assert.equal((await request("/wishlist")).body.count, 1);
+  await Product.deleteOne({ _id: keyboardId });
+  assert.equal((await request("/wishlist")).body.count, 0);
+  assert.equal((await request(`/wishlist/${keyboardId}`, { method: "DELETE" })).response.status, 200);
+  assert.equal((await request(`/wishlist/${keyboardId}`, { method: "DELETE" })).response.status, 404);
+  authCookie = null;
+});

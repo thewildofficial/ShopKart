@@ -10,7 +10,7 @@ export function isAborted(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError';
 }
 
-interface RequestOptions { method?: 'GET' | 'POST'; body?: LoginValues | RegisterValues; signal?: AbortSignal; }
+interface RequestOptions { method?: 'GET' | 'POST' | 'DELETE'; body?: LoginValues | RegisterValues; signal?: AbortSignal; }
 async function request<T>(path: string, { method = 'GET', body, signal }: RequestOptions = {}): Promise<T> {
   let response: Response;
   try {
@@ -30,6 +30,9 @@ async function request<T>(path: string, { method = 'GET', body, signal }: Reques
 }
 
 export const api = {
+  wishlist: (signal?: AbortSignal) => request<{ success: boolean; count: number; wishlist: ProductSummary[] }>('/api/wishlist', { signal }),
+  addToWishlist: (id: string) => request<{ success: boolean; message: string }>(`/api/wishlist/${encodeURIComponent(id)}`, { method: 'POST' }),
+  removeFromWishlist: (id: string) => request<{ success: boolean; message: string }>(`/api/wishlist/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   register: (details: RegisterValues) => request<{ success: boolean; customer: Customer }>('/customers/register', { method: 'POST', body: details }),
   login: (details: LoginValues) => request<{ success: boolean; customer: Customer }>('/customers/login', { method: 'POST', body: details }),
   me: (signal?: AbortSignal) => request<Customer>('/customers/me', { signal }),

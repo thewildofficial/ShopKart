@@ -16,6 +16,7 @@ export interface Customer {
   password: string;
   phone: string;
   createdAt: Date;
+  wishlist: mongoose.Types.ObjectId[];
 }
 
 export interface CustomerMethods {
@@ -49,6 +50,10 @@ const customerSchema = new mongoose.Schema<Customer, CustomerModel, CustomerMeth
       type: String,
       required: true,
       trim: true,
+    },
+    wishlist: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
+      default: [],
     },
     createdAt: {
       type: Date,

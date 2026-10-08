@@ -51,3 +51,7 @@ The demo visibly proves:
 ## Tests
 
 `npm test` compiles the TypeScript source, starts a temporary MongoDB instance, runs the HTTP flow end to end, and removes the temporary test database afterward. Set `MONGOD_BIN` if `mongod` is not on your PATH.
+
+## Lab-04: Wishlist
+
+See [LAB-04.md](LAB-04.md) for protected wishlist APIs, persistent Product references, frontend behavior and the Postman collection.

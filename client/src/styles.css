@@ -138,3 +138,6 @@ select:focus-visible { outline: 3px solid #d49d49; outline-offset: 4px; }
   .detail-image { min-height: 280px; }
   .detail-info { padding: 28px; }
 }
+
+.wishlist-action { width: 100%; margin-top: 10px; }
+@media (max-width: 600px) { .navbar { flex-wrap: wrap; gap: 12px; } .navbar nav { flex-wrap: wrap; gap: 12px; } }

@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import { api, ApiError, errorMessage, isAborted } from './services/api';
+import Wishlist from './pages/Wishlist';
 import Products from './pages/Products';
 import ProductDetails from './pages/ProductDetails';
 import type { Customer } from './types';
@@ -67,6 +68,7 @@ export default function App() {
         <Route path="/register" element={loggedIn ? <Navigate to="/home" replace /> : <Register />} />
         <Route path="/login" element={loggedIn ? <Navigate to="/home" replace /> : <Login />} />
         <Route path="/home" element={loggedIn ? <Home customer={session.customer!} /> : <Navigate to="/login" replace />} />
+        <Route path="/wishlist" element={loggedIn ? <Wishlist /> : <Navigate to="/login" replace />} />
         <Route path="/products" element={loggedIn ? <Products /> : <Navigate to="/login" replace />} />
         <Route path="/products/:id" element={loggedIn ? <ProductDetails /> : <Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to={loggedIn ? '/home' : '/login'} replace />} />
