@@ -1,25 +1,26 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
+import type { FormErrors } from '../types';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import FormField from '../components/FormField';
-import { api } from '../services/api';
+import { api, errorMessage } from '../services/api';
 import { validate } from '../utils/validation';
 
 export default function Register() {
   const navigate = useNavigate();
   const [values, setValues] = useState({ fullName: '', email: '', password: '', phone: '' });
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  function handleChange(event) {
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
     setValues((previous) => ({ ...previous, [name]: value }));
     setErrors((previous) => ({ ...previous, [name]: '' }));
     setMessage('');
   }
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
     const fieldErrors = validate(values, true);
@@ -32,7 +33,7 @@ export default function Register() {
       // Registration creates an account; login is a separate, explicit step.
       navigate('/login', { replace: true, state: { registered: true, email: values.email.trim() } });
     } catch (error) {
-      setMessage(error.message);
+      setMessage(errorMessage(error));
     } finally {
       setSubmitting(false);
     }

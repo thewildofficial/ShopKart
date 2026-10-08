@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import mongoose from "mongoose";
 import customerRoutes from "./routes/customer.routes";
+import productRoutes from "./routes/product.routes";
 
 if (typeof process.loadEnvFile === "function") {
   try {
@@ -24,13 +25,17 @@ export function createApp(): express.Express {
   app.disable("x-powered-by");
   app.use(express.json());
   app.use(cookieParser());
+  app.use("/api/products", productRoutes);
 
   // After build:all, Express can serve the React app and API on one origin.
   // The development client uses Vite's /customers proxy instead.
   const clientDist = path.resolve(__dirname, "../../client/dist");
   if (fs.existsSync(path.join(clientDist, "index.html"))) {
     app.use(express.static(clientDist));
-    app.get(["/", "/login", "/register", "/home"], (req, res) => {
+    app.get(["/", "/login", "/register", "/home", "/products", "/products/:id"], (req, res, next) => {
+      // /products is both a lab API endpoint and a React page. Browser page
+      // navigation asks for HTML; API clients receive JSON from productRoutes.
+      if (req.path.startsWith("/products") && !req.headers.accept?.includes("text/html")) return next();
       res.sendFile(path.join(clientDist, "index.html"));
     });
   }
@@ -43,6 +48,7 @@ export function createApp(): express.Express {
   });
 
   app.use("/customers", customerRoutes);
+  app.use("/products", productRoutes);
 
   app.use((req, res) => {
     res.status(404).json({

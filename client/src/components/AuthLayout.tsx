@@ -1,4 +1,5 @@
-export default function AuthLayout({ children }) {
+import type { ReactNode } from 'react';
+export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <main className="auth-layout">
       <aside className="welcome-panel">

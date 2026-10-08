@@ -1,26 +1,27 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
+import type { FormErrors } from '../types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import FormField from '../components/FormField';
-import { api } from '../services/api';
+import { api, ApiError, errorMessage } from '../services/api';
 import { validate } from '../utils/validation';
 
 export default function Login() {
   const location = useLocation();
   const navigate = useNavigate();
   const [values, setValues] = useState({ email: location.state?.email || '', password: '' });
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  function handleChange(event) {
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
     setValues((previous) => ({ ...previous, [name]: value }));
     setErrors((previous) => ({ ...previous, [name]: '' }));
     setMessage('');
   }
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
     const fieldErrors = validate(values);
@@ -33,7 +34,7 @@ export default function Login() {
       // Home verifies the cookie with /me rather than trusting the login response.
       navigate('/home', { replace: true });
     } catch (error) {
-      setMessage(error.status === 401 ? 'Invalid Credentials' : error.message);
+      setMessage(error instanceof ApiError && error.status === 401 ? 'Invalid Credentials' : errorMessage(error));
     } finally {
       setSubmitting(false);
     }

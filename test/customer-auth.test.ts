@@ -9,6 +9,7 @@ import type { Server } from "node:http";
 
 import mongoose from "mongoose";
 import Customer from "../backend/models/customer.model";
+import Product from "../backend/models/product.model";
 import { createApp } from "../backend/index";
 
 let mongod: ChildProcessWithoutNullStreams | undefined;
@@ -237,4 +238,102 @@ test("protects the profile, changes the password, and logs out", async () => {
     body: JSON.stringify({ email: "john@gmail.com", password: "newjohn123" }),
   });
   assert.equal(newLogin.response.status, 200);
+});
+
+
+// Product tests use the same isolated MongoDB and real HTTP server as auth tests.
+const keyboard = {
+  name: "Mechanical Keyboard", description: "A comfortable mechanical keyboard.",
+  price: 2999, category: "Electronics", image: "/images/keyboard.svg", stock: 10,
+};
+let keyboardId = "";
+
+test("product schema independently enforces mandatory fields, positive price and whole nonnegative stock", async () => {
+  for (const field of ["name", "description", "price", "category", "image", "stock"]) {
+    const data: Record<string, unknown> = { ...keyboard };
+    delete data[field];
+    await assert.rejects(new Product(data).validate(), mongoose.Error.ValidationError);
+  }
+  for (const price of [0, -1, Infinity]) {
+    await assert.rejects(new Product({ ...keyboard, price }).validate(), mongoose.Error.ValidationError);
+  }
+  for (const stock of [-1, 1.5]) {
+    await assert.rejects(new Product({ ...keyboard, stock }).validate(), mongoose.Error.ValidationError);
+  }
+  await new Product({ ...keyboard, stock: 0 }).validate();
+});
+
+test("creates products publicly, persists them and generates IDs and timestamps", async () => {
+  authCookie = null;
+  const empty = await request("/products");
+  assert.equal(empty.response.status, 200);
+  assert.equal(empty.body.count, 0);
+  const created = await request("/products", {
+    method: "POST", body: JSON.stringify({ ...keyboard, _id: "aaaaaaaaaaaaaaaaaaaaaaaa", createdAt: "2000-01-01" }),
+  });
+  assert.equal(created.response.status, 201);
+  assert.equal(created.body.success, true);
+  keyboardId = created.body.product._id;
+  assert.notEqual(keyboardId, "aaaaaaaaaaaaaaaaaaaaaaaa");
+  assert.ok(Date.parse(created.body.product.createdAt) > Date.parse("2020-01-01"));
+  const stored = await Product.findById(keyboardId);
+  assert.equal(stored?.name, keyboard.name);
+  assert.equal(stored?.stock, 10);
+
+  for (const product of [
+    { ...keyboard, name: "Keyboard (Mini)", price: 999, stock: 0 },
+    { ...keyboard, name: "Cotton Shirt", category: "Fashion", price: 699 },
+    { ...keyboard, name: "Keyboard Handbook", category: "Books", price: 399 },
+  ]) {
+    assert.equal((await request("/products", { method: "POST", body: JSON.stringify(product) })).response.status, 201);
+  }
+});
+
+test("rejects missing, malformed and invalid product fields with 400", async () => {
+  for (const field of ["name", "description", "price", "category", "image", "stock"]) {
+    const data: Record<string, unknown> = { ...keyboard };
+    delete data[field];
+    assert.equal((await request("/products", { method: "POST", body: JSON.stringify(data) })).response.status, 400, field);
+  }
+  for (const override of [
+    { name: "   " }, { category: {} }, { image: [] }, { description: null },
+    { price: 0 }, { price: -10 }, { price: "2999" }, { price: null },
+    { stock: -1 }, { stock: 1.5 }, { stock: "10" }, { stock: true },
+  ]) {
+    assert.equal((await request("/products", { method: "POST", body: JSON.stringify({ ...keyboard, ...override }) })).response.status, 400);
+  }
+  assert.equal((await Product.countDocuments()), 4);
+});
+
+test("lists summaries, searches names case-insensitively, combines category and sorts prices", async () => {
+  const all = await request("/products");
+  assert.equal(all.body.count, 4);
+  assert.equal(all.body.products.length, 4);
+  assert.equal("description" in all.body.products[0], false);
+  assert.equal("createdAt" in all.body.products[0], false);
+  assert.equal((await request("/products?search=KEYBOARD")).body.count, 3);
+  assert.equal((await request("/products?category=Electronics")).body.count, 2);
+  const combined = await request("/products?search=keyboard&category=Electronics&sort=price_asc");
+  assert.deepEqual(combined.body.products.map((product: { price: number }) => product.price), [999, 2999]);
+  const descending = await request("/products?sort=price_desc");
+  assert.deepEqual(descending.body.products.map((product: { price: number }) => product.price), [2999, 999, 699, 399]);
+  assert.equal((await request("/products?search=description-only-text")).body.count, 0);
+  assert.equal((await request("/products?search=keyboard&category=Home")).body.count, 0);
+  assert.equal((await request("/products?search=%28Mini%29")).body.count, 1);
+  assert.equal((await request("/products?search=.*")).body.count, 0);
+  assert.equal((await request("/products?search=%20KEYBOARD%20")).body.count, 3);
+  assert.equal((await request("/api/products?category=Books")).body.count, 1);
+  for (const query of ["sort=wrong", "search=one&search=two", "category[$ne]=Books"]) {
+    assert.equal((await request(`/products?${query}`)).response.status, 400);
+  }
+});
+
+test("fetches complete product details and distinguishes invalid IDs from missing products", async () => {
+  const details = await request(`/products/${keyboardId}`);
+  assert.equal(details.response.status, 200);
+  assert.equal(details.body.product.description, keyboard.description);
+  assert.equal(details.body.product.price, keyboard.price);
+  assert.equal((await request(`/api/products/${keyboardId}`)).body.product._id, keyboardId);
+  assert.equal((await request("/products/not-an-id")).response.status, 400);
+  assert.equal((await request("/products/aaaaaaaaaaaaaaaaaaaaaaaa")).response.status, 404);
 });

@@ -4,12 +4,17 @@ import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
-import { api } from './services/api';
+import { api, ApiError, errorMessage, isAborted } from './services/api';
+import Products from './pages/Products';
+import ProductDetails from './pages/ProductDetails';
+import type { Customer } from './types';
+
+type Session = { status: 'authenticated'; customer: Customer } | { status: 'loading' | 'anonymous' | 'error'; customer: null };
 
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [session, setSession] = useState({ status: 'loading', customer: null });
+  const [session, setSession] = useState<Session>({ status: 'loading', customer: null });
   const [retry, setRetry] = useState(0);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState('');
@@ -21,13 +26,13 @@ export default function App() {
     // Verify every route change and page refresh against the server's cookie.
     api.me(controller.signal)
       .then((customer) => setSession({ status: 'authenticated', customer }))
-      .catch((error) => {
-        if (error.name === 'AbortError') return;
-        setSession({ status: error.status === 401 ? 'anonymous' : 'error', customer: null });
+      .catch((error: unknown) => {
+        if (isAborted(error)) return;
+        setSession({ status: error instanceof ApiError && error.status === 401 ? 'anonymous' : 'error', customer: null });
       });
     // Cancel stale requests when navigating away or during StrictMode cleanup.
     return () => controller.abort();
-  }, [location.key, retry]);
+  }, [location.pathname, retry]);
 
   async function handleLogout() {
     if (loggingOut) return;
@@ -38,12 +43,12 @@ export default function App() {
       setSession({ status: 'anonymous', customer: null });
       navigate('/login', { replace: true });
     } catch (error) {
-      if (error.status === 401) {
+      if (error instanceof ApiError && error.status === 401) {
         // An expired session is already logged out from the server's point of view.
         setSession({ status: 'anonymous', customer: null });
         navigate('/login', { replace: true });
       } else {
-        setLogoutError(error.message);
+        setLogoutError(errorMessage(error));
       }
     } finally {
       setLoggingOut(false);
@@ -61,7 +66,9 @@ export default function App() {
       <Routes>
         <Route path="/register" element={loggedIn ? <Navigate to="/home" replace /> : <Register />} />
         <Route path="/login" element={loggedIn ? <Navigate to="/home" replace /> : <Login />} />
-        <Route path="/home" element={loggedIn ? <Home customer={session.customer} /> : <Navigate to="/login" replace />} />
+        <Route path="/home" element={loggedIn ? <Home customer={session.customer!} /> : <Navigate to="/login" replace />} />
+        <Route path="/products" element={loggedIn ? <Products /> : <Navigate to="/login" replace />} />
+        <Route path="/products/:id" element={loggedIn ? <ProductDetails /> : <Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to={loggedIn ? '/home' : '/login'} replace />} />
       </Routes>
     );

@@ -1,10 +1,14 @@
-# ShopKart — Lab-01 + Lab-02
+# ShopKart — Labs 01, 02 and 03
 
-An MVC Express/Mongoose TypeScript backend and a responsive React authentication frontend.
+An MVC Express/Mongoose TypeScript backend and a responsive TypeScript React authentication and product catalog frontend.
 
 **Lab-02 walkthrough:** see [LAB-02.md](LAB-02.md) for setup, every implemented feature, the folder structure, cookie flow, viva answers and browser verification.
 
 Run `npm run dev` for the API and `npm run dev:client` in another terminal for the React app at http://localhost:5173. To serve the built app and API together, run `npm run build:all` then `npm start`.
+
+**Lab-03 walkthrough:** see [LAB-03.md](LAB-03.md) for product APIs, search, category filtering, sorting, details, TypeScript migration and validation.
+
+Optional sample products: run `npm run seed` after starting MongoDB. Visit `/products` after logging in. Products are stored in MongoDB and fetched through the API.
 
 ## Requirements
 
