@@ -1,23 +1,29 @@
 {
   "name": "shopkart-customer-auth-service",
   "version": "1.0.0",
-  "description": "MVC customer authentication service for ShopKart",
+  "description": "ShopKart Lab-01 backend and Lab-02 React authentication client",
   "main": "dist/backend/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "npm run build && node dist/backend/index.js",
     "dev": "npm run build && node dist/backend/index.js",
-    "test": "npm run build && node --test dist/test/customer-auth.test.js"
+    "test": "npm run build && node --test dist/test/customer-auth.test.js",
+    "build:client": "vite build --config client/vite.config.mjs",
+    "build:all": "npm run build && npm run build:client",
+    "dev:client": "vite --config client/vite.config.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": "^20.19.0 || >=22.12.0"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.18.0"
+    "mongoose": "^8.18.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
@@ -25,6 +31,8 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.13.3",
-    "typescript": "^5.9.3"
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.3"
   }
 }

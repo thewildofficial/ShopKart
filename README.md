@@ -1,10 +1,14 @@
-# ShopKart Customer Authentication Service
+# ShopKart — Lab-01 + Lab-02
 
-An MVC Express/Mongoose TypeScript authentication backend for the Engineering Lab 01 requirements.
+An MVC Express/Mongoose TypeScript backend and a responsive React authentication frontend.
+
+**Lab-02 walkthrough:** see [LAB-02.md](LAB-02.md) for setup, every implemented feature, the folder structure, cookie flow, viva answers and browser verification.
+
+Run `npm run dev` for the API and `npm run dev:client` in another terminal for the React app at http://localhost:5173. To serve the built app and API together, run `npm run build:all` then `npm start`.
 
 ## Requirements
 
-- Node.js 20 or newer
+- Node.js 20.19+ or 22.12+
 - MongoDB running locally
 
 ## Run locally

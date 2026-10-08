@@ -1,5 +1,7 @@
 import express, { type ErrorRequestHandler } from "express";
 import cookieParser from "cookie-parser";
+import fs from "node:fs";
+import path from "node:path";
 import mongoose from "mongoose";
 import customerRoutes from "./routes/customer.routes";
 
@@ -22,6 +24,16 @@ export function createApp(): express.Express {
   app.disable("x-powered-by");
   app.use(express.json());
   app.use(cookieParser());
+
+  // After build:all, Express can serve the React app and API on one origin.
+  // The development client uses Vite's /customers proxy instead.
+  const clientDist = path.resolve(__dirname, "../../client/dist");
+  if (fs.existsSync(path.join(clientDist, "index.html"))) {
+    app.use(express.static(clientDist));
+    app.get(["/", "/login", "/register", "/home"], (req, res) => {
+      res.sendFile(path.join(clientDist, "index.html"));
+    });
+  }
 
   app.get("/", (req, res) => {
     res.status(200).json({
