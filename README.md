@@ -1,6 +1,6 @@
-# ShopKart — Labs 01, 02 and 03
+# ShopKart — Labs 01–06
 
-An MVC Express/Mongoose TypeScript backend and a responsive TypeScript React authentication and product catalog frontend.
+A full-stack shopping app with an Express/Mongoose TypeScript backend and a responsive React frontend: authentication, product catalogue, wishlist, cart, Razorpay Test Mode checkout and order history.
 
 **Lab-02 walkthrough:** see [LAB-02.md](LAB-02.md) for setup, every implemented feature, the folder structure, cookie flow, viva answers and browser verification.
 
@@ -9,6 +9,25 @@ Run `npm run dev` for the API and `npm run dev:client` in another terminal for t
 **Lab-03 walkthrough:** see [LAB-03.md](LAB-03.md) for product APIs, search, category filtering, sorting, details, TypeScript migration and validation.
 
 Optional sample products: run `npm run seed` after starting MongoDB. Visit `/products` after logging in. Products are stored in MongoDB and fetched through the API.
+
+## App screenshots
+
+Captured from the running app with a sample customer and demo products. The order-history screenshot shows a pending Test Mode order; it is not a completed payment.
+
+| Login | Product catalogue |
+| --- | --- |
+| ![ShopKart login page](docs/screenshots/login.jpg) | ![Product catalogue with search, category and sort controls](docs/screenshots/products.jpg) |
+| Sign in to your account. | Browse products and check prices and availability. |
+
+| Wishlist | Shopping cart |
+| --- | --- |
+| ![Wishlist with a saved reading desk lamp](docs/screenshots/wishlist.jpg) | ![Shopping cart with quantity controls and order summary](docs/screenshots/cart.jpg) |
+| Save favourites for later. | Change quantities and review the subtotal. |
+
+| Checkout | My Orders |
+| --- | --- |
+| ![Checkout shipping form and order summary](docs/screenshots/checkout.jpg) | ![Order history displaying a pending payment order](docs/screenshots/orders.jpg) |
+| Enter shipping details before Razorpay Test Checkout. | View persisted orders and their payment status. |
 
 ## Requirements
 
