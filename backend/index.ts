@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import mongoose from "mongoose";
 import customerRoutes from "./routes/customer.routes";
+import orderRoutes from "./routes/order.routes";
 import cartRoutes from "./routes/cart.routes";
 import wishlistRoutes from "./routes/wishlist.routes";
 import productRoutes from "./routes/product.routes";
@@ -30,16 +31,17 @@ export function createApp(): express.Express {
   app.use("/api/products", productRoutes);
   app.use("/api/wishlist", wishlistRoutes);
   app.use("/api/cart", cartRoutes);
+  app.use("/api/orders", orderRoutes);
 
   // After build:all, Express can serve the React app and API on one origin.
   // The development client uses Vite's /customers proxy instead.
   const clientDist = path.resolve(__dirname, "../../client/dist");
   if (fs.existsSync(path.join(clientDist, "index.html"))) {
     app.use(express.static(clientDist));
-    app.get(["/", "/login", "/register", "/home", "/products", "/products/:id", "/wishlist", "/cart", "/checkout"], (req, res, next) => {
+    app.get(["/", "/login", "/register", "/home", "/products", "/products/:id", "/wishlist", "/cart", "/checkout", "/orders", "/orders/:id", "/order-success/:id"], (req, res, next) => {
       // /products is both a lab API endpoint and a React page. Browser page
       // navigation asks for HTML; API clients receive JSON from productRoutes.
-      if ((req.path.startsWith("/products") || req.path === "/wishlist" || req.path === "/cart") && !req.headers.accept?.includes("text/html")) return next();
+      if ((req.path.startsWith("/products") || req.path === "/wishlist" || req.path === "/cart" || req.path.startsWith("/orders")) && !req.headers.accept?.includes("text/html")) return next();
       res.sendFile(path.join(clientDist, "index.html"));
     });
   }
@@ -55,6 +57,7 @@ export function createApp(): express.Express {
   app.use("/products", productRoutes);
   app.use("/wishlist", wishlistRoutes);
   app.use("/cart", cartRoutes);
+  app.use("/orders", orderRoutes);
 
   app.use((req, res) => {
     res.status(404).json({

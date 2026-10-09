@@ -1,4 +1,4 @@
-import type { CartResponse, Customer, LoginValues, RegisterValues, Product, ProductSummary, ProductFilters } from '../types';
+import type { Order, ShippingAddress, PaymentDetails, PaymentOrder, CartResponse, Customer, LoginValues, RegisterValues, Product, ProductSummary, ProductFilters } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number) { super(message); }
@@ -10,7 +10,7 @@ export function isAborted(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError';
 }
 
-interface RequestOptions { method?: 'GET' | 'POST' | 'DELETE' | 'PATCH'; body?: LoginValues | RegisterValues | { quantity: number }; signal?: AbortSignal; }
+interface RequestOptions { method?: 'GET' | 'POST' | 'DELETE' | 'PATCH'; body?: LoginValues | RegisterValues | { quantity: number } | { shippingAddress: ShippingAddress } | PaymentDetails; signal?: AbortSignal; }
 async function request<T>(path: string, { method = 'GET', body, signal }: RequestOptions = {}): Promise<T> {
   let response: Response;
   try {
@@ -30,6 +30,10 @@ async function request<T>(path: string, { method = 'GET', body, signal }: Reques
 }
 
 export const api = {
+  createPaymentOrder: (shippingAddress: ShippingAddress) => request<PaymentOrder>('/api/orders/create-payment-order', { method: 'POST', body: { shippingAddress } }),
+  verifyPayment: (body: PaymentDetails) => request<{ success: boolean; order: Order }>('/api/orders/verify-payment', { method: 'POST', body }),
+  orders: (signal?: AbortSignal) => request<{ success: boolean; orders: Order[] }>('/api/orders', { signal }),
+  order: (id: string, signal?: AbortSignal) => request<{ success: boolean; order: Order }>(`/api/orders/${encodeURIComponent(id)}`, { signal }),
   cart: (signal?: AbortSignal) => request<CartResponse>('/api/cart', { signal }),
   addToCart: (id: string, signal?: AbortSignal) => request<CartResponse>(`/api/cart/${encodeURIComponent(id)}`, { method: 'POST', signal }),
   updateCartQuantity: (id: string, quantity: number, signal?: AbortSignal) => request<CartResponse>(`/api/cart/${encodeURIComponent(id)}`, { method: 'PATCH', body: { quantity }, signal }),

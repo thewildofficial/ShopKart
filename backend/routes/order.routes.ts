@@ -1,0 +1,10 @@
+import { Router } from "express";
+import protect from "../middlewares/auth.middleware";
+import { createPaymentOrder, verifyPayment, getOrders, getOrder } from "../controllers/order.controller";
+const router = Router();
+router.use(protect);
+router.post("/create-payment-order", createPaymentOrder);
+router.post("/verify-payment", verifyPayment);
+router.get("/", getOrders);
+router.get("/:id", getOrder);
+export default router;

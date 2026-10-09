@@ -29,3 +29,12 @@ export type LoadState<T> =
 
 export interface CartItem { product: ProductSummary; quantity: number; }
 export interface CartResponse { success: boolean; cart: CartItem[]; message?: string; }
+
+export interface ShippingAddress { fullName: string; phone: string; addressLine1: string; city: string; state: string; pincode: string; }
+export interface Order {
+  _id: string; items: { product: string; name: string; price: number; quantity: number; image?: string }[];
+  shippingAddress: ShippingAddress; totalAmount: number; paymentStatus: 'PENDING' | 'PAID' | 'FAILED';
+  status: string; createdAt: string;
+}
+export interface PaymentDetails { shopKartOrderId: string; razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string; }
+export interface PaymentOrder { shopKartOrderId: string; razorpayOrderId: string; keyId: string; amount: number; currency: string; }

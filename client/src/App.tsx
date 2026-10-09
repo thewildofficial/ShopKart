@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import { CartProvider } from './context/CartContext';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
+import Orders from './pages/Orders';
 import CartNotice from './components/CartNotice';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
@@ -77,6 +78,9 @@ export default function App() {
         <Route path="/login" element={loggedIn ? <Navigate to="/home" replace /> : <Login />} />
         <Route path="/home" element={loggedIn ? <Home customer={session.customer!} /> : <Navigate to="/login" replace />} />
         <Route path="/cart" element={loggedIn ? <Cart /> : <Navigate to="/login" replace />} />
+        <Route path="/orders" element={loggedIn ? <Orders /> : <Navigate to="/login" replace />} />
+        <Route path="/orders/:id" element={loggedIn ? <Orders /> : <Navigate to="/login" replace />} />
+        <Route path="/order-success/:id" element={loggedIn ? <Orders /> : <Navigate to="/login" replace />} />
         <Route path="/checkout" element={loggedIn ? <Checkout /> : <Navigate to="/login" replace />} />
         <Route path="/wishlist" element={loggedIn ? <Wishlist /> : <Navigate to="/login" replace />} />
         <Route path="/products" element={loggedIn ? <Products /> : <Navigate to="/login" replace />} />

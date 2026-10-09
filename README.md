@@ -59,3 +59,7 @@ See [LAB-04.md](LAB-04.md) for protected wishlist APIs, persistent Product refer
 ## Lab-05: Shopping Cart
 
 See [LAB-05.md](LAB-05.md) for cart APIs, shared React Context state, stock validation, quantity controls, totals and a runnable Postman collection.
+
+## Lab 06: Checkout and Orders
+
+See [LAB-06.md](LAB-06.md) for Razorpay Test Mode configuration, payment verification, order history and test coverage.
